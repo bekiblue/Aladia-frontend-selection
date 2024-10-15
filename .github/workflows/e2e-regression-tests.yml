@@ -1,0 +1,52 @@
+name: E2E Visual Regression Tests
+
+on:
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  e2e_visual_regression:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        run: |
+          npm install -g pnpm
+
+      - name: Install dependencies
+        run: |
+          cd aladia-nuxt-tasks
+          pnpm install
+
+      - name: Build Application
+        run: |
+          cd aladia-nuxt-tasks
+          pnpm run build
+
+      - name: Start Application
+        run: |
+          cd aladia-nuxt-tasks
+          pnpm run preview &
+
+      - name: Wait for application to start
+        run: |
+          cd aladia-nuxt-tasks
+          npx wait-on http://localhost:3000
+
+      - name: Run Cypress Tests with Chromatic
+        run: |
+          cd aladia-nuxt-tasks
+          ELECTRON_EXTRA_LAUNCH_ARGS=--remote-debugging-port=9222 pnpm cypress run --e2e
+          npx chromatic --cypress --project-token=chpt_358f4a1a757b827 --exit-zero-on-changes
